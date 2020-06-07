@@ -52,6 +52,10 @@ class Client():
 
         consume = normalize_array(consume)
 
+        self.consumers = {}
+
+        self.gatherer = None
+
         config = {}
 
         config['and' if gather is True else 'or'] = consume
@@ -79,10 +83,11 @@ class Client():
 
 
         class task():
-            def __init__(self, socket, payload):
+            def __init__(self, socket, topic, topics, data, payload):
                 self.payload = payload
-                self.data = payload['data']
-                self.topics = payload['topics']
+                self.data = data
+                self.topics = topics
+                self.topic = topic
                 self.socket = socket
 
 
@@ -110,9 +115,34 @@ class Client():
         @self.socket.on('consumption')
         def consumption(payload):
 
-            for listener in self.listeners:
 
-                listener(task(self.socket, payload))
+            if self.gatherer is not None:
+
+                print(f'Consuming Topics: {payload["topics"]}')
+
+                self.gatherer(task(self.socket, None, payload['topics'], payload['data'], payload))
+            
+            else:
+
+                for topic in payload['topics']:
+
+
+                    consumer = None
+
+                    if topic in self.consumers:
+                        consumer = self.consumers[topic]
+
+                    elif '*' in self.consumers:
+                        consumer = self.consumers['*']
+                    
+                    if consumer is not None:
+
+                        print(f'Consuming Topic: {topic}')
+
+                        consumer(task(self.socket, topic, payload['topics'], payload['data'][topic], payload))
+
+                    else:
+                        raise Exception("No consumer found for registerd topic.")
 
 
         @self.socket.on('error')
@@ -128,35 +158,38 @@ class Client():
         self.socket.sleep(3)
 
 
-    self.consumers = {}
+    def consume(self, topics):
 
-    self.gatherer = None
+        def register_consumers(func):
 
+            nonlocal topics
 
-    def consume(self, *args):
+            topics = normalize_array(topics)
 
-        topics = args[0]
+            for topic in topics:
+
+                if topic in self.consumers or '*' in self.consumers:
+                    raise Exception(f'Consumer for topic {topic} has already been registered.')
+
+                self.consumers[topic] = func
 
         if callable(topics):
             func = topics
             topics = ['*']
+            register_consumers(func)
 
-        topics = normalize_array(topics)
-
-        for topic in topics:
-
-            if topic in self.consumers or '*' in self.consumers:
-                raise Exception(f'Consumer for topic {topic} has already been registered.')
-
-            self.consumers[topic] = func
+        else:
+            return register_consumers
 
 
-        self.listeners.append(func)
 
-    gather: func => {
-        if(Object.keys(consumers).length > 0) throw Error('Gather listens for all topics and can not be used with consume.')
-        gatherer = func
-    },
+
+    def gather(self, func):
+
+        if len(self.consumers.keys()) > 0:
+            raise Exception(f'Gather listens for all topics and can not be used with consume.')
+        
+        self.gatherer = func
 
 
     def produce(self, topic=None, channel=None, data=None):
