@@ -35,6 +35,7 @@ operator = griffon_client.connect(
     operator='test1',
     channels=['.*'],
     consume=['topic1', 'topic2'],
+    gather=False,
 )
 
 
