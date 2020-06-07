@@ -40,26 +40,37 @@ def normalize_array(producer):
 #***********************************************************************/
 
 
-class connect():
+class Client():
 
 
-    def __init__(self, uri=None, username=None, password=None, operator=None, environment=None, consume=None, produce=None, channels=None):
+    def __init__(self, uri=None, username=None, password=None, task=None, environment='default', consume=None, produce=None, channels=['default'], gather=False):
+        
+        self.channels=channels
 
         print(f'connecting to server at {uri}')
+
+
+        consume = normalize_array(consume)
+
+        config = {}
+
+        config['and' if gather is True else 'or'] = consume
+
+        consume = config
 
         query = json.dumps({
             'username': username,
             'password': password,
-            'operator': operator,
+            'operator': task,
             'environment': environment,
             'consume': normalize_consumer(consume),
             'produce': normalize_array(produce),
             'channels': normalize_array(channels),
         })
 
-        self.socket = socketio.Client()
 
-        self.listeners = []
+
+        self.socket = socketio.Client()
 
 
         @self.socket.on('connect')
@@ -117,14 +128,41 @@ class connect():
         self.socket.sleep(3)
 
 
+    self.consumers = {}
 
-    def consume(self, func):
+    self.gatherer = None
+
+
+    def consume(self, *args):
+
+        topics = args[0]
+
+        if callable(topics):
+            func = topics
+            topics = ['*']
+
+        topics = normalize_array(topics)
+
+        for topic in topics:
+
+            if topic in self.consumers or '*' in self.consumers:
+                raise Exception(f'Consumer for topic {topic} has already been registered.')
+
+            self.consumers[topic] = func
+
 
         self.listeners.append(func)
+
+    gather: func => {
+        if(Object.keys(consumers).length > 0) throw Error('Gather listens for all topics and can not be used with consume.')
+        gatherer = func
+    },
 
 
     def produce(self, topic=None, channel=None, data=None):
 
+        if channel is None and len(self.channels) == 1 and self.channels[0] == 'default':
+            channel = 'default'
 
         if topic is None:
             raise Exception('Producers must include a topic.')
@@ -143,10 +181,3 @@ class connect():
 
 
 
-
-
-
-
-#************************************************************************
-#* Public Export
-#***********************************************************************/
