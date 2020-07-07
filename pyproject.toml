@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "griffon-client"
-version = "0.2.1"
+version = "0.2.2"
 description = "A message queue for connecting workflows"
 authors = ["August Brenner <augustbrenner@gmail.com>"]
 license = "MIT"

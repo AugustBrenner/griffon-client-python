@@ -1,5 +1,6 @@
 import socketio
 import json
+import threading
 from urllib.parse import urlencode
 
 
@@ -115,11 +116,8 @@ class Client():
         @self.socket.on('consumption')
         def consumption(payload):
 
-            try:
-                return {'code': 200}
 
-            finally:
-
+            def execute_task(self, payload):
                 if self.gatherer is not None:
 
                     print(f'Consuming Topics: {payload["topics"]}')
@@ -147,6 +145,13 @@ class Client():
 
                         else:
                             raise Exception("No consumer found for registerd topic.")
+
+
+            t = threading.Thread(target=execute_task, args=[self, payload])
+            t.setDaemon(False)
+            t.start()
+
+            return {'code': 200}
 
 
 
