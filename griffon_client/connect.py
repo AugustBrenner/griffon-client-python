@@ -100,6 +100,7 @@ class Client():
                     raise Exception("'data', must not be 'None'.")
 
                 production_payload = {
+                    'completed_task_id': self.payload['task_id'],
                     'topic': topic,
                     'stream_id': self.payload['stream_id'],
                     'channel': self.payload['channel'],
