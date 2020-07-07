@@ -115,34 +115,39 @@ class Client():
         @self.socket.on('consumption')
         def consumption(payload):
 
+            try:
+                return {'code': 200}
 
-            if self.gatherer is not None:
+            finally:
 
-                print(f'Consuming Topics: {payload["topics"]}')
+                if self.gatherer is not None:
 
-                self.gatherer(task(self.socket, None, payload['topics'], payload['data'], payload))
-            
-            else:
+                    print(f'Consuming Topics: {payload["topics"]}')
 
-                for topic in payload['topics']:
+                    self.gatherer(task(self.socket, None, payload['topics'], payload['data'], payload))
+                
+                else:
+
+                    for topic in payload['topics']:
 
 
-                    consumer = None
+                        consumer = None
 
-                    if topic in self.consumers:
-                        consumer = self.consumers[topic]
+                        if topic in self.consumers:
+                            consumer = self.consumers[topic]
 
-                    elif '*' in self.consumers:
-                        consumer = self.consumers['*']
-                    
-                    if consumer is not None:
+                        elif '*' in self.consumers:
+                            consumer = self.consumers['*']
+                        
+                        if consumer is not None:
 
-                        print(f'Consuming Topic: {topic}')
+                            print(f'Consuming Topic: {topic}')
 
-                        consumer(task(self.socket, topic, payload['topics'], payload['data'][topic], payload))
+                            consumer(task(self.socket, topic, payload['topics'], payload['data'][topic], payload))
 
-                    else:
-                        raise Exception("No consumer found for registerd topic.")
+                        else:
+                            raise Exception("No consumer found for registerd topic.")
+
 
 
         @self.socket.on('error')
